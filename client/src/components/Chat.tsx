@@ -1,13 +1,13 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { ChangeEvent, KeyboardEvent  } from 'react'
 import clsx from 'clsx';
-import formatDistanceToNow from 'date-fns/formatDistanceToNow';
+// import formatDistanceToNow from 'date-fns/formatDistanceToNow';
 
 import Box from '@mui/material/Box'
 import InputBase from '@mui/material/InputBase'
 import Paper from '@mui/material/Paper'
 import IconButton from '@mui/material/IconButton'
-import Typography from '@mui/material/Typography';
+// import Typography from '@mui/material/Typography';
 import {EmojiEmotionsSharp} from '@mui/icons-material'
 import AttachFileIcon from '@mui/icons-material/AttachFile'
 import SendIcon from '@mui/icons-material/Send'
@@ -97,11 +97,16 @@ const Chat = () => {
 
   const chats = useAppSelector((state) => state.chat.chats)
 
+  const status = useAppSelector((state) => state.chat.status)
+
+  const chatRef = useRef(null);
+
   const onInputChange = (ev: ChangeEvent<HTMLInputElement>): void => {
     setMessageText(ev.target.value)
   }
 
   const handleKeyDown = (ev: KeyboardEvent<HTMLInputElement>): void => {
+    if(status === "loading") return;
     if (ev.key === 'Enter' && !ev.shiftKey) {
       ev.preventDefault()
       if(ev.currentTarget.value == "") return;
@@ -123,41 +128,42 @@ const Chat = () => {
     return i === chats.length - 1 || (chats[i + 1] && chats[i + 1].type !== item.type);
   }
 
+  useEffect(() => {
+    // chatRef.current?
+  }, [chats]);
+
   return (
-    <>
+    <div ref={chatRef}>
       <Box
-        className="flex flex-auto h-full min-h-0 w-full"
+        className="flex flex-col h-full w-full pt-4 px-4 pb-10 h-screen overflow-y-scroll"
         sx={{
-          backgroundColor: '',
-          opacity: [0.9, 0.8, 0.7],
+          backgroundColor: '#b3b3b3',
         }}
       >
-        <div className="flex flex-col pt-16 px-16 pb-40">
-          {chats.map((item, i) => {
-            return (
-              <StyledMessageRow
-                key={i}
-                className={clsx(
-                  'flex flex-col grow-0 shrink-0 items-start justify-end relative px-4 pb-1',
-                  item.type,
-                  { 'first-of-group': isFirstMessageOfGroup(item, i) },
-                  { 'last-of-group': isLastMessageOfGroup(item, i) },
-                  i + 1 === chats.length && 'pb-24'
-                )}
-              >
-                <div className="bubble flex relative items-center justify-center p-3 max-w-full">
-                  <div className="leading-tight whitespace-pre-wrap">{item.message}</div>
-                  <Typography
-                    className="time absolute hidden w-full text-11 mt-2 -mb-6 ltr:left-0 rtl:right-0 bottom-0 whitespace-nowrap"
-                    color="text.secondary"
-                  >
-                    {formatDistanceToNow(new Date(item.time), { addSuffix: true })}
-                  </Typography>
-                </div>
-              </StyledMessageRow>
-            );
-          })}
-        </div>
+        {chats.map((item, i) => {
+          return (
+            <StyledMessageRow
+              key={i}
+              className={clsx(
+                'flex flex-col grow-0 shrink-0 items-start justify-end relative px-4 pb-1',
+                item.type,
+                { 'first-of-group': isFirstMessageOfGroup(item, i) },
+                { 'last-of-group': isLastMessageOfGroup(item, i) },
+                i + 1 === chats.length && 'pb-24'
+              )}
+            >
+              <div className="bubble flex relative items-center justify-center p-3 max-w-full">
+                <div className="leading-tight whitespace-pre-wrap">{item.message}</div>
+                {/* <Typography
+                  className="time absolute hidden w-full text-11 mt-2 -mb-6 ltr:left-0 rtl:right-0 bottom-0 whitespace-nowrap"
+                  color="text.secondary"
+                >
+                  {formatDistanceToNow(new Date(item.time), { addSuffix: true })}
+                </Typography> */}
+              </div>
+            </StyledMessageRow>
+          );
+        })}
       </Box>
       <Paper
         square
@@ -190,13 +196,14 @@ const Chat = () => {
 
           <IconButton 
             size="large"
+            disabled={status === "loading" ? true : false}
             onClick={submitPrompt}
           >
             <SendIcon/>
           </IconButton>
         </div>
       </Paper>
-    </>
+    </div>
   )
 }
 

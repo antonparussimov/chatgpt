@@ -5,7 +5,7 @@ import axios from "axios"
 export interface ChatType {
   type: string,
   message: string,
-  time: Date
+  time: number
 }
 
 export interface ChatState {
@@ -24,10 +24,12 @@ export const getChatgptResponse = createAsyncThunk(
     const myChat: ChatType = {
       type: "me",
       message: prompt,
-      time: new Date()
+      time: Date.now()
     }
     dispatch(addMyChat(myChat))
-    const response = await axios.post('/api/getChatgptResponse', prompt)
+    const response = await axios.post('http://localhost:8000/chatgpt/getResponseChatgpt', {
+      prompt: prompt
+    })
     return response.data
   }
 )
@@ -49,8 +51,11 @@ export const chatSlice = createSlice({
     .addCase(getChatgptResponse.rejected, (state) => {
       state.status = "failed"
     })
+    .addCase(getChatgptResponse.pending, (state) => {
+      state.status = "loading"
+    })
     .addMatcher(
-      (action) => action.meta === "pendfing",
+      (action) => action.meta === "pending",
       (state) => {
         state.status = "loading"
       }
