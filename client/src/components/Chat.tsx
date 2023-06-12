@@ -1,11 +1,20 @@
-import Box from '@mui/material/Box';
-import InputBase from '@mui/material/InputBase';
-import Paper from '@mui/material/Paper';
-import IconButton from '@mui/material/IconButton';
-import {EmojiEmotionsSharp} from '@mui/icons-material';
-import AttachFileIcon from '@mui/icons-material/AttachFile';
-import SendIcon from '@mui/icons-material/Send';
-import { lighten, styled } from '@mui/material/styles';
+import { useState } from 'react'
+import { ChangeEvent, KeyboardEvent  } from 'react'
+import clsx from 'clsx';
+import formatDistanceToNow from 'date-fns/formatDistanceToNow';
+
+import Box from '@mui/material/Box'
+import InputBase from '@mui/material/InputBase'
+import Paper from '@mui/material/Paper'
+import IconButton from '@mui/material/IconButton'
+import Typography from '@mui/material/Typography';
+import {EmojiEmotionsSharp} from '@mui/icons-material'
+import AttachFileIcon from '@mui/icons-material/AttachFile'
+import SendIcon from '@mui/icons-material/Send'
+import { styled } from '@mui/material/styles'
+
+import { useAppDispatch, useAppSelector } from '../store/hooks'
+import { getChatgptResponse, ChatType } from '../store/chatSlice'
 
 const StyledMessageRow = styled('div')(() => ({
   '&.contact': {
@@ -79,24 +88,79 @@ const StyledMessageRow = styled('div')(() => ({
       },
     },
   },
-}));
+}))
 
 const Chat = () => {
+  const dispatch = useAppDispatch()
+
+  const [messageText, setMessageText] = useState('')
+
+  const chats = useAppSelector((state) => state.chat.chats)
+
+  const onInputChange = (ev: ChangeEvent<HTMLInputElement>): void => {
+    setMessageText(ev.target.value)
+  }
+
+  const handleKeyDown = (ev: KeyboardEvent<HTMLInputElement>): void => {
+    if (ev.key === 'Enter' && !ev.shiftKey) {
+      ev.preventDefault()
+      if(ev.currentTarget.value == "") return;
+      setMessageText(ev.currentTarget.value)
+      submitPrompt()
+    }
+  }
+
+  const submitPrompt = (): void => {
+    dispatch(getChatgptResponse(messageText))
+    setMessageText("")
+  }
+
+  const isFirstMessageOfGroup = (item: ChatType, i: number): boolean => {
+    return i === 0 || (chats[i - 1] && chats[i - 1].type !== item.type);
+  }
+
+  function isLastMessageOfGroup(item: ChatType, i: number): boolean {
+    return i === chats.length - 1 || (chats[i + 1] && chats[i + 1].type !== item.type);
+  }
+
   return (
     <>
       <Box
         className="flex flex-auto h-full min-h-0 w-full"
         sx={{
-          backgroundColor: 'primary.dark',
+          backgroundColor: '',
           opacity: [0.9, 0.8, 0.7],
         }}
       >
-
+        <div className="flex flex-col pt-16 px-16 pb-40">
+          {chats.map((item, i) => {
+            return (
+              <StyledMessageRow
+                key={i}
+                className={clsx(
+                  'flex flex-col grow-0 shrink-0 items-start justify-end relative px-4 pb-1',
+                  item.type,
+                  { 'first-of-group': isFirstMessageOfGroup(item, i) },
+                  { 'last-of-group': isLastMessageOfGroup(item, i) },
+                  i + 1 === chats.length && 'pb-24'
+                )}
+              >
+                <div className="bubble flex relative items-center justify-center p-3 max-w-full">
+                  <div className="leading-tight whitespace-pre-wrap">{item.message}</div>
+                  <Typography
+                    className="time absolute hidden w-full text-11 mt-2 -mb-6 ltr:left-0 rtl:right-0 bottom-0 whitespace-nowrap"
+                    color="text.secondary"
+                  >
+                    {formatDistanceToNow(new Date(item.time), { addSuffix: true })}
+                  </Typography>
+                </div>
+              </StyledMessageRow>
+            );
+          })}
+        </div>
       </Box>
       <Paper
         square
-        component="form"
-        // onSubmit={onMessageSubmit}
         className="absolute border-t-1 bottom-0 right-0 left-0 py-4 px-4"
         sx={{
           backgroundColor: '#e8e8e8'
@@ -118,18 +182,22 @@ const Chat = () => {
             id="message-input"
             className="flex-1 flex grow shrink-0 mx-2 px-4 border-2 rounded-2xl"
             placeholder="Type your message"
-            // onChange={onInputChange}
-            // value={messageText}
+            onChange={onInputChange}
+            onKeyDown={handleKeyDown}
+            value={messageText}
             sx={{ backgroundColor: 'background.paper', padding: '10px' }}
           />
 
-          <IconButton type="submit" size="large">
+          <IconButton 
+            size="large"
+            onClick={submitPrompt}
+          >
             <SendIcon/>
           </IconButton>
         </div>
       </Paper>
     </>
-  );
+  )
 }
 
 export default Chat
