@@ -6,7 +6,7 @@ import json
 import os
 import openai
 
-openai.api_key = "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"
+openai.api_key = ""
 
 @csrf_exempt
 def getResponseChatgpt(request):
